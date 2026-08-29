@@ -2,16 +2,25 @@
 local sizeX = 128
 local sizeY = 128
 
-
-local sizeVector = Vector2.new(sizeX,sizeY)
-
-local EI = game:GetService("AssetService"):CreateEditableImage({Size=sizeVector})
-script.Parent.ImageContent = Content.fromObject(EI)
+local AssetService = game:GetService("AssetService")
+local RunService = game:GetService("RunService")
 
 local screenbuffer = buffer.create(sizeX*sizeY*4)
 
 local lerp = math.lerp
 local floor = math.floor
+local abs = math.abs
+
+local parent = script.Parent
+
+local sizeVector = Vector2.new(sizeX,sizeY)
+
+local EI = AssetService:CreateEditableImage({Size=sizeVector})
+
+
+parent.ImageContent = Content.fromObject(EI)
+
+
 function cLerp(c1,c2,t) 
 	return 
 		floor(lerp(c1.r,c2.r,t)*255),
@@ -28,7 +37,7 @@ function plot(x,y,r,g,b)
 
 end
 
--- covers slopes between 0 and -1 
+-- covers cases where the line slope is low (dy < dx)
 function bresenhamLow(x0, y0, x1, y1, c1, c2)
 
 	local dx = x1 - x0
@@ -54,7 +63,7 @@ function bresenhamLow(x0, y0, x1, y1, c1, c2)
 	end
 end
 
--- covers positive or negative steep slopes
+-- covers cases where the line slope is high (dy > dx)
 function bresenhamHigh(x0, y0, x1, y1, c1, c2)
 	local dx = x1 - x0
 	local dy = y1 - y0
@@ -79,7 +88,8 @@ function bresenhamHigh(x0, y0, x1, y1, c1, c2)
 	end
 end
 
-local abs = math.abs
+-- determines which out of the 2 implementations to use, also reverses argument order in cases where the end is before the start. 
+-- when arguments are reversed, color order is reversed as well
 function bresenham(x0, y0, x1, y1,c1,c2)
 	if abs(y1 - y0) < abs(x1 - x0) then
 		if x0 > x1 then
@@ -99,29 +109,26 @@ function bresenham(x0, y0, x1, y1,c1,c2)
 end
 
 
--- struct vec3 {float x; float y; float z;}
+local vertexData = {
+	{x=-0.5,y=-0.5,z=-0.5},
 
--- vertices array: vec3[8]
-local info = {
-	{-0.5,-0.5,-0.5},
+	{x=-0.5,y=0.5,z=-0.5},
 
-	{-0.5,0.5,-0.5},
+	{x=0.5,y=-0.5,z=-0.5},
 
-	{0.5,-0.5,-0.5},
+	{x=0.5,y=0.5,z=-0.5},
 
-	{0.5,0.5,-0.5},
+	{x=-0.5,y=-0.5,z=0.5},
 
-	{-0.5,-0.5,0.5},
+	{x=-0.5,y=0.5,z=0.5},
 
-	{-0.5,0.5,0.5},
+	{x=0.5,y=-0.5,z=0.5},
 
-	{0.5,-0.5,0.5},
-
-	{0.5,0.5,0.5}
+	{x=0.5,y=0.5,z=0.5}
 
 }
 
-	
+
 -- call it a gimbal mutex the way they be losing degrees of rotation
 
 --2--------4
@@ -132,30 +139,40 @@ local info = {
 
 -- struct edge {unsigned int from; unsigned int to};
 
--- edges array: edge[12], uses vertex ids
+-- edges array: edge[16], uses vertex ids
 local edges = {
-	{1,5},
-	{2,6},
-	{3,7},
-	{4,8},
+	{startVertex=1,endVertex=5},
+	{startVertex=2,endVertex=6},
+	{startVertex=3,endVertex=7},
+	{startVertex=4,endVertex=8},
 
-	{1,2},
-	{1,3},
-	{3,4},
-	{2,4},
+	{startVertex=1,endVertex=2},
+	{startVertex=1,endVertex=3},
+	{startVertex=3,endVertex=4},
+	{startVertex=2,endVertex=4},
 
-	{5,6},
-	{5,7},
-	{7,8},
-	{6,8},
+	{startVertex=5,endVertex=6},
+	{startVertex=5,endVertex=7},
+	{startVertex=7,endVertex=8},
+	{startVertex=6,endVertex=8},
+	
+	{startVertex=1,endVertex=4},	
+	{startVertex=1,endVertex=6},
+	{startVertex=5,endVertex=8},
+	{startVertex=7,endVertex=4},
+	{startVertex=2,endVertex=8},
+	{startVertex=1,endVertex=7},
+
+
 };
+
 
 local vertexColors = {
 	Color3.new(0,0,0),
 	Color3.new(1,0,0),
 	Color3.new(0,1,0),
 	Color3.new(1,1,0),
-	
+
 	Color3.new(0,0,1),
 	Color3.new(1,0,1),
 	Color3.new(0,1,1),
@@ -164,27 +181,27 @@ local vertexColors = {
 
 -- struct vec2 {float x; float y};
 local rotated = {
-	{0.0,0.0,0.0},
-	{0.0,0.0,0.0},
-	{0.0,0.0,0.0},
-	{0.0,0.0,0.0},
-	{0.0,0.0,0.0},
-	{0.0,0.0,0.0},
-	{0.0,0.0,0.0},
-	{0.0,0.0,0.0}	
+	{x=0.0,y=0.0,z=0.0},
+	{x=0.0,y=0.0,z=0.0},
+	{x=0.0,y=0.0,z=0.0},
+	{x=0.0,y=0.0,z=0.0},
+	{x=0.0,y=0.0,z=0.0},
+	{x=0.0,y=0.0,z=0.0},
+	{x=0.0,y=0.0,z=0.0},
+	{x=0.0,y=0.0,z=0.0}	
 } -- vec3[8]
 
+
 local projected = {
-	{0.0,0.0},	
-	{0.0,0.0},
-	{0.0,0.0},
-	{0.0,0.0},
-	{0.0,0.0},
-	{0.0,0.0},
-	{0.0,0.0},
-	{0.0,0.0}
+	{x=0.0,y=0.0},	
+	{x=0.0,y=0.0},
+	{x=0.0,y=0.0},
+	{x=0.0,y=0.0},
+	{x=0.0,y=0.0},
+	{x=0.0,y=0.0},
+	{x=0.0,y=0.0},
+	{x=0.0,y=0.0}
 } -- vec2[8]
-local angle = 0.0 -- float;
 
 local angleX, angleY, angleZ -- float;
 angleX = 0.0
@@ -201,71 +218,94 @@ xCos=1.0
 yCos=1.0
 zCos=1.0
 
+function getEdgeDepth(edge)
+	return (rotated[edge.startVertex].z + rotated[edge.endVertex].z)/2
+end
+
 -- protection against vert.z approaching 0
 local distanceFromCamera = 2.0; -- float; 
 
-local cos = math.cos -- float (*)(float)
-local sin = math.sin -- float (*)(float)
+local cos = math.cos
+local sin = math.sin 
 
-game:GetService("RunService").RenderStepped:Connect(function(deltaTime: number) 
-
-
+RunService.RenderStepped:Connect(function(deltaTime: number) 
 	-- clear, transparent background fill
 	buffer.fill(screenbuffer,0,0,sizeX*sizeY*4) 
-	
-	local vert1Id, vert2Id, vert1, vert2 
-
+ 
 	xSin = sin(angleX);
 	xCos = cos(angleX);
 	ySin = sin(angleY);
 	yCos = cos(angleY);
 	zSin = sin(angleZ);
 	zCos = cos(angleZ);
-
-	-- premultipled rotation matrix, XYZ intristic order 
-	for i = 1, 8, 1 do
+	
+	-- rotating the vertices using a
+	-- premultipled rotation matrix, XYZ order 
+	for i = 1, #vertexData do
 		rotated[i] = {
-			-- .x=
-			(info[i][1] * ( zCos * yCos )) + (info[i][2] * ( zCos * ySin * xSin - zSin * xCos )) + (info[i][3] * ( zCos * ySin * xCos + zSin * xSin )), 
-			-- .y=
-			(info[i][1] * ( zSin * yCos )) + (info[i][2] * ( zSin * ySin * xSin + zCos * xCos)) + (info[i][3] * (zSin * ySin * xCos - zCos * xSin )), 
-			-- .z=
-			(info[i][1] * ( -ySin)) + (info[i][2] * ( yCos * xSin)) + (info[i][3] * (yCos * xCos ))  
+			x=
+				vertexData[i].x * ( zCos * yCos ) +
+				vertexData[i].y * ( zCos * ySin * xSin - zSin * xCos ) + 
+				vertexData[i].z * ( zCos * ySin * xCos + zSin * xSin ),
+			
+			y=
+				vertexData[i].x * ( zSin * yCos ) + 
+				vertexData[i].y * ( zSin * ySin * xSin + zCos * xCos ) + 
+				vertexData[i].z * ( zSin * ySin * xCos - zCos * xSin ),
+			
+			z=
+				vertexData[i].x * ( -ySin ) + 
+				vertexData[i].y * ( yCos * xSin ) + 
+				vertexData[i].z * ( yCos * xCos )  
 		} 
 	end
 
 	-- simple perspective projection
-	for i = 1, 8, 1 do
+	for i = 1, #rotated do
 		projected[i] = {
-			rotated[i][1]/(rotated[i][3]+distanceFromCamera), -- vert.x  / ( vert.z + distanceFromCamera)
-			rotated[i][2]/(rotated[i][3]+distanceFromCamera)  -- vert.y  / ( vert.z + distanceFromCamera)
+			x=rotated[i].x/(rotated[i].z+distanceFromCamera),
+			y=rotated[i].y/(rotated[i].z+distanceFromCamera)  
 		} 
 	end
-
+	
+	-- simple implementation of the painter's algorithm, works tho, no weird overlaps
+	-- '>' because the camera is looking toward +Z
+	table.sort(edges,
+		function(a0, a1)
+			return getEdgeDepth(a0) > getEdgeDepth(a1) 
+	end)
+	
+	local startVertexId, endVertexId, startVertex, endVertex
+	
 	-- drawing the edges
-	for edgeID = 1, 12, 1 do
-		
-		vert1Id = edges[edgeID][1] -- (vec2*)(edges[edgeID].from) (or (vec2*)(&projected + edges[edgeID].from))
-		vert2Id = edges[edgeID][2] -- (vec2*)(edges[edgeID].to)
+	for edgeID = 1, #edges do
 
-		vert1 = (Vector2.new(projected[vert1Id][1],projected[vert1Id][2])+Vector2.one)/2*sizeVector -- (vec2){.x=(*vert1Id.x+1)/2,.y=(*vert1Id.y+1)/2}
-		vert2 = (Vector2.new(projected[vert2Id][1],projected[vert2Id][2])+Vector2.one)/2*sizeVector -- (vec2){.x=(*vert2Id.x+1)/2,.y=(*vert2Id.y+1)/2}
+		startVertexId = edges[edgeID].startVertex
+		endVertexId = edges[edgeID].endVertex 
+
+		startVertex = sizeVector/2 * Vector2.new(
+			projected[startVertexId].x+1,
+			projected[startVertexId].y+1)
 		
+		endVertex =  sizeVector/2 * Vector2.new(
+			projected[endVertexId].x+1,
+			projected[endVertexId].y+1) 
+
 		bresenham(
-			floor(vert1.X),
-			floor(vert1.Y),
-			floor(vert2.X),
-			floor(vert2.Y),
-			
-			vertexColors[vert1Id],
-			vertexColors[vert2Id])
-		
+			floor(startVertex.X),
+			floor(startVertex.Y),
+			floor(endVertex.X),
+			floor(endVertex.Y),
+
+			vertexColors[startVertexId],
+			vertexColors[endVertexId])
+
 	end
 
 	angleX+=deltaTime*0.4
 	angleY+=deltaTime*0.8
 	angleZ+=deltaTime*1.2
-	
+
 	EI:WritePixelsBuffer(Vector2.zero,sizeVector,screenbuffer)
 end)
 --shoutout to:
