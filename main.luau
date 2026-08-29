@@ -139,7 +139,7 @@ local vertexData = {
 
 -- struct edge {unsigned int from; unsigned int to};
 
--- edges array: edge[16], uses vertex ids
+-- edges array,  uses vertex ids
 local edges = {
 	{startVertex=1,endVertex=5},
 	{startVertex=2,endVertex=6},
@@ -179,7 +179,6 @@ local vertexColors = {
 	Color3.new(1,1,1),
 }
 
--- struct vec2 {float x; float y};
 local rotated = {
 	{x=0.0,y=0.0,z=0.0},
 	{x=0.0,y=0.0,z=0.0},
@@ -189,7 +188,7 @@ local rotated = {
 	{x=0.0,y=0.0,z=0.0},
 	{x=0.0,y=0.0,z=0.0},
 	{x=0.0,y=0.0,z=0.0}	
-} -- vec3[8]
+} 
 
 
 local projected = {
@@ -201,15 +200,15 @@ local projected = {
 	{x=0.0,y=0.0},
 	{x=0.0,y=0.0},
 	{x=0.0,y=0.0}
-} -- vec2[8]
+} 
 
-local angleX, angleY, angleZ -- float;
+local angleX, angleY, angleZ 
 angleX = 0.0
 angleY = 0.0
 angleZ = 0.0
 
 -- all sines are 0 and cosines are 1 for all angles are inited as 0
-local xSin,ySin,zSin, xCos,yCos,zCos -- float;
+local xSin,ySin,zSin, xCos,yCos,zCos 
 xSin=0.0
 ySin=0.0
 zSin=0.0
@@ -223,7 +222,7 @@ function getEdgeDepth(edge)
 end
 
 -- protection against vert.z approaching 0
-local distanceFromCamera = 2.0; -- float; 
+local distanceFromCamera = 2.0; 
 
 local cos = math.cos
 local sin = math.sin 
